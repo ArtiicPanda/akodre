@@ -1810,12 +1810,6 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, unsi
 		return NULL;
 	}
 #endif
-
-#ifdef CONFIG_FS_HPB
-	if (inode && __is_hpb_file(dentry->d_name.name, inode))
-		ext4_set_inode_state(inode, EXT4_STATE_HPB);
-#endif
-
 	return d_splice_alias(inode, dentry);
 }
 
@@ -2728,10 +2722,6 @@ retry:
 		err = ext4_add_nondir(handle, dentry, inode);
 		if (!err && IS_DIRSYNC(dir))
 			ext4_handle_sync(handle);
-#ifdef CONFIG_FS_HPB
-		if (__is_hpb_file(dentry->d_name.name, inode))
-			ext4_set_inode_state(inode, EXT4_STATE_HPB);
-#endif
 	}
 	if (handle)
 		ext4_journal_stop(handle);
@@ -3681,11 +3671,12 @@ static void ext4_resetent(handle_t *handle, struct ext4_renament *ent,
 	 * so the old->de may no longer valid and need to find it again
 	 * before reset old inode info.
 	 */
-	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name, &old.de, NULL);
+	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name, &old.de, NULL, NULL);
 	if (IS_ERR(old.bh))
 		retval = PTR_ERR(old.bh);
 	if (!old.bh)
 		retval = -ENOENT;
+		
 	if (retval) {
 		ext4_std_error(old.dir->i_sb, retval);
 		return;
@@ -3818,9 +3809,6 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 	struct inode *whiteout = NULL;
 	int credits;
 	u8 old_file_type;
-#ifdef CONFIG_FS_HPB
-	struct inode *hpb_inode;
-#endif
 
 	if (new.inode && new.inode->i_nlink == 0) {
 		EXT4_ERROR_INODE(new.inode,
@@ -3963,14 +3951,6 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 		ext4_rename_delete(handle, &old, force_reread);
 	}
 
-#ifdef CONFIG_FS_HPB
-	hpb_inode = (new.inode)? : old.inode;
-	if (__is_hpb_file(new_dentry->d_name.name, hpb_inode))
-		ext4_set_inode_state(hpb_inode, EXT4_STATE_HPB);
-	else
-		ext4_clear_inode_state(hpb_inode, EXT4_STATE_HPB);
-#endif
-
 	if (new.inode) {
 		ext4_dec_count(handle, new.inode);
 		new.inode->i_ctime = current_time(new.inode);
@@ -4005,8 +3985,8 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 end_rename:
 	if (whiteout) {
 		if (retval) {
-			ext4_resetent(handle, &old,
-				      old.inode->i_ino, old_file_type);
+			ext4_setent(handle, &old,
+					  old.inode->i_ino, old_file_type);
 			drop_nlink(whiteout);
 		}
 		unlock_new_inode(whiteout);
