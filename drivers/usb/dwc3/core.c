@@ -1653,17 +1653,7 @@ static int dwc3_probe(struct platform_device *pdev)
 
 	ret = dwc3_alloc_scratch_buffers(dwc);
 	if (ret)
-		goto err3;
-
-	ret = dwc3_core_init(dwc);
-	if (ret) {
-		if (ret != -EPROBE_DEFER)
-			dev_err(dev, "failed to initialize core: %d\n", ret);
-		goto err4;
-	}
-
-	dwc3_check_params(dwc);
-	dwc3_debugfs_init(dwc);
+		goto err2;
 
 	if (!notify_event) {
 		ret = dwc3_core_init(dwc);
@@ -1674,7 +1664,12 @@ static int dwc3_probe(struct platform_device *pdev)
 			goto err3;
 		}
 
-		pm_runtime_put(dev);
+		ret = dwc3_event_buffers_setup(dwc);
+		if (ret) {
+			dev_err(dwc->dev, "failed to setup event buffers\n");
+			goto err3;
+		}
+
 		ret = dwc3_core_init_mode(dwc);
 		if (ret) {
 			dwc3_event_buffers_cleanup(dwc);
@@ -1694,10 +1689,6 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (!dwc->dwc_ipc_log_ctxt)
 		dev_err(dwc->dev, "Error getting ipc_log_ctxt\n");
 
-err5:
-	dwc3_debugfs_exit(dwc);
-	dwc3_event_buffers_cleanup(dwc);
-
 	snprintf(dma_ipc_log_ctx_name, sizeof(dma_ipc_log_ctx_name),
 					"%s.ep_events", dev_name(dwc->dev));
 	dwc->dwc_dma_ipc_log_ctxt = ipc_log_context_create(2 * NUM_LOG_PAGES,
@@ -1714,15 +1705,10 @@ err5:
 	dwc3_debugfs_init(dwc);
 	return 0;
 
-err4:
-	dwc3_free_scratch_buffers(dwc);
-
 err3:
-	dwc3_free_event_buffers(dwc);
-
+	dwc3_free_scratch_buffers(dwc);
 err2:
-	pm_runtime_allow(&pdev->dev);
-	
+	dwc3_free_event_buffers(dwc);
 err1:
 	pm_runtime_allow(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
@@ -1739,15 +1725,8 @@ static int dwc3_remove(struct platform_device *pdev)
 {
 	struct dwc3	*dwc = platform_get_drvdata(pdev);
 
-	pm_runtime_get_sync(&pdev->dev);
-
-	dwc3_core_exit_mode(dwc);
 	dwc3_debugfs_exit(dwc);
 	dwc3_gadget_exit(dwc);
-
-	dwc3_core_exit(dwc);
-	dwc3_ulpi_exit(dwc);
-
 	pm_runtime_disable(&pdev->dev);
 	pm_runtime_put_noidle(&pdev->dev);
 	pm_runtime_set_suspended(&pdev->dev);
@@ -1892,7 +1871,7 @@ static int dwc3_resume_common(struct dwc3 *dwc, pm_message_t msg)
 		if (PMSG_IS_AUTO(msg))
 			break;
 
-		ret = dwc3_core_init_for_resume(dwc);
+		ret = dwc3_core_init(dwc);
 		if (ret)
 			return ret;
 
