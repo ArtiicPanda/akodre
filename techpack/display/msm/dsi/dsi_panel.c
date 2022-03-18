@@ -38,7 +38,6 @@
 //#include <linux/oem/project_info.h>
 #include "oneplus_dsi_support.h"
 
-#include <../../../oneplus/power/oplus_chg/oplus_op_def.h>
 #if IS_BUILTIN(CONFIG_TOUCHPANEL_OPLUS)
 extern int (*tp_gesture_enable_notifier)(unsigned int tp_index);
 #endif
@@ -713,7 +712,7 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 
 	mode = get_boot_mode();
 	pr_err("[TP] in dsi_panel_power_off, mode=%d\n",mode);
-	if((mode != MSM_BOOT_MODE__FACTORY) && (mode != MSM_BOOT_MODE__RF) && (mode != MSM_BOOT_MODE__WLAN)) {
+	if((mode != MSM_BOOT_MODE_FACTORY) && (mode != MSM_BOOT_MODE_RF)) {
 #if IS_BUILTIN(CONFIG_TOUCHPANEL_OPLUS)
 		if(tp_gesture_enable_notifier && tp_gesture_enable_notifier(0) && (atomic_read(&panel->esd_recovery_pending) == 0)) {
 			is_pd_with_guesture = true;
@@ -6067,7 +6066,7 @@ int dsi_panel_unprepare(struct dsi_panel *panel)
 		|| !strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel")) {
 		mode = get_boot_mode();
 		pr_err("[TP] in dsi_panel_unprepare, mode=%d\n",mode);
-		if((mode != MSM_BOOT_MODE__FACTORY) && (mode != MSM_BOOT_MODE__RF) && (mode != MSM_BOOT_MODE__WLAN)) {
+		if((mode != MSM_BOOT_MODE_FACTORY) && (mode != MSM_BOOT_MODE_RF)) {
 #if IS_BUILTIN(CONFIG_TOUCHPANEL_OPLUS)
 			if ((tp_gesture_enable_notifier && 1 != tp_gesture_enable_notifier(0)) || (shutdown_flag == 1)|| (atomic_read(&panel->esd_recovery_pending) == 1))
 #elif IS_MODULE(CONFIG_TOUCHPANEL_OPLUS)
