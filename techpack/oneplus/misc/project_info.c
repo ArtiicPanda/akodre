@@ -27,7 +27,7 @@ static struct component_info component_info_desc[COMPONENT_MAX];
 static struct kobject *project_info_kobj;
 static struct project_info *project_info_desc;
 
-int a_board_val = 0;
+int project_info_a_board_val = 0;
 static struct kobject *component_info;
 static ssize_t project_info_get(struct kobject *kobj,
     struct kobj_attribute *attr, char *buf);
@@ -140,7 +140,7 @@ static ssize_t project_info_get(struct kobject *kobj,
             socinfo_get_serial_number());
 
         if (attr == &op_attr_aboard_id)
-            return snprintf(buf, BUF_SIZE, "%d\n",a_board_val);
+            return snprintf(buf, BUF_SIZE, "%d\n",project_info_a_board_val);
     }
 
     return -EINVAL;

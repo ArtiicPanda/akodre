@@ -10,7 +10,7 @@ int hw_version = 0;
 int rf_version = 0;
 int prj_version = 0;
 
-char *enum_ftm_mode[] = {"normal",
+char *boot_mode_enum_ftm_mode[] = {"normal",
 						 "fastboot",
 						 "recovery",
 						 "aging",
@@ -42,7 +42,7 @@ static int __init boot_mode_init(char *str)
 	}
 
 	pr_info("kernel boot_mode = %s[%d]\n",
-			enum_ftm_mode[boot_mode], boot_mode);
+			boot_mode_enum_ftm_mode[boot_mode], boot_mode);
 	return 0;
 }
 __setup("androidboot.ftm_mode=", boot_mode_init);
@@ -76,7 +76,7 @@ static int __init boot_mode_init_normal(void)
 		boot_mode = MSM_BOOT_MODE_RECOVERY;
 
 	pr_info("kernel normal boot_mode = %s[%d]\n",
-	enum_ftm_mode[boot_mode], boot_mode);
+	boot_mode_enum_ftm_mode[boot_mode], boot_mode);
 
 	return 0;
 }
